@@ -20,7 +20,9 @@ quickly include into a project and have working right away.
 
 The MIT License
 
-Copyright (c) 2012 Toomas RÃmer <toomas@gmail.com>
+Copyright (c) 2012
+  Toomas RÃ¶mer <toomas@gmail.com>
+  Kenny Katzgrau <katzgrau@gmail.com>
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal

@@ -1,50 +1,24 @@
 <?php
-
 /**
- * Finally, a light, permissions-checking logging class.
- *
- * Originally written for use with wpSearch
- *
- * Usage:
- * $log = new KLogger('/var/log/', KLogger::INFO);
- * $log->logInfo('Returned a million search results'); //Prints to the log file
- * $log->logFatal('Oh dear.'); //Prints to the log file
- * $log->logDebug('x = 5'); //Prints nothing due to current severity threshhold
- *
- * @author  Kenny Katzgrau <katzgrau@gmail.com>
- * @since   July 26, 2008 — Last update July 1, 2012
- * @link    http://codefury.net
- * @version 0.2.0
+ * This is based on https://github.com/katzgrau/KLogger
+ * 
+ * (+) I've made it more Java (Log4J like)
+ * (+) I've remove the long logXXX methods and replaced them with XXX methods
+ *   - so instead of logDebug("myDebug") you write debug("myDebug")
+ * (+) The initialization takes a filename vs a folder
+ * (+) No automatic date based file is generated for you, instead the filename is used
+ * (+) If no argument give will log to tlogger.log file
  */
 
-/**
- * Class documentation
- */
-class KLogger
+class TLogger
 {
-    /**
-     * Error severity, from low to high. From BSD syslog RFC, secion 4.1.1
-     * @link http://www.faqs.org/rfcs/rfc3164.html
-     */
-    const EMERG  = 0;  // Emergency: system is unusable
-    const ALERT  = 1;  // Alert: action must be taken immediately
-    const CRIT   = 2;  // Critical: critical conditions
-    const ERR    = 3;  // Error: error conditions
-    const WARN   = 4;  // Warning: warning conditions
-    const NOTICE = 5;  // Notice: normal but significant condition
-    const INFO   = 6;  // Informational: informational messages
-    const DEBUG  = 7;  // Debug: debug messages
-
-    //custom logging level
-    /**
-     * Log nothing at all
-     */
-    const OFF    = 8;
-    /**
-     * Alias for CRIT
-     * @deprecated
-     */
-    const FATAL  = 2;
+    const FATAL   = 0;
+    const ERR     = 1;
+    const WARN    = 2;
+    const INFO    = 3;
+    const DEBUG   = 4;
+		const ALL     = 5;
+    const OFF     = 6;
 
     /**
      * Internal status codes
@@ -58,7 +32,7 @@ class KLogger
      * print out objects etc. But we can't use NULL, 0, FALSE, etc, because those
      * are often the values the developers will test for. So we'll make one up.
      */
-    const NO_ARGUMENTS = 'KLogger::NO_ARGUMENTS';
+    const NO_ARGUMENTS = 'TLogger::NO_ARGUMENTS';
 
     /**
      * Current status of the log file
@@ -113,7 +87,7 @@ class KLogger
      */
     private static $_defaultPermissions = 0777;
     /**
-     * Array of KLogger instances, part of Singleton pattern
+     * Array of TLogger instances, part of Singleton pattern
      * @var array
      */
     private static $instances           = array();
@@ -124,7 +98,7 @@ class KLogger
      *
      * @param string  $logDirectory File path to the logging directory
      * @param integer $severity     One of the pre-defined severity constants
-     * @return KLogger
+     * @return TLogger
      */
     public static function instance($logDirectory = false, $severity = false)
     {
@@ -156,24 +130,14 @@ class KLogger
      * @param integer $severity     One of the pre-defined severity constants
      * @return void
      */
-    public function __construct($logDirectory, $severity)
+    public function __construct($logFile="tlogger.log", $severity=self::ALL)
     {
-        $logDirectory = rtrim($logDirectory, '\\/');
-
         if ($severity === self::OFF) {
             return;
         }
 
-        $this->_logFilePath = $logDirectory
-            . DIRECTORY_SEPARATOR
-            . 'log_'
-            . date('Y-m-d')
-            . '.txt';
-
+        $this->_logFilePath = $logFile;
         $this->_severityThreshold = $severity;
-        if (!file_exists($logDirectory)) {
-            mkdir($logDirectory, self::$_defaultPermissions, true);
-        }
 
         if (file_exists($this->_logFilePath) && !is_writable($this->_logFilePath)) {
             $this->_logStatus = self::STATUS_OPEN_FAILED;
@@ -198,16 +162,6 @@ class KLogger
         if ($this->_fileHandle) {
             fclose($this->_fileHandle);
         }
-    }
-    /**
-     * Writes a $line to the log with a severity level of DEBUG
-     *
-     * @param string $line Information to log
-     * @return void
-     */
-    public function logDebug($line, $args = self::NO_ARGUMENTS)
-    {
-        $this->log($line, self::DEBUG);
     }
 
     /**
@@ -238,13 +192,24 @@ class KLogger
     }
 
     /**
-     * Sets the date format used by all instances of KLogger
+     * Sets the date format used by all instances of TLogger
      * 
      * @param string $dateFormat Valid format string for date()
      */
     public static function setDateFormat($dateFormat)
     {
         self::$_dateFormat = $dateFormat;
+    }
+    
+    /**
+     * Writes a $line to the log with a severity level of DEBUG
+     *
+     * @param string $line Information to log
+     * @return void
+     */
+    public function debug($line, $args = self::NO_ARGUMENTS)
+    {
+    	$this->log($line, self::DEBUG, $args);
     }
 
     /**
@@ -254,9 +219,9 @@ class KLogger
      * @param string $line Information to log
      * @return void
      */
-    public function logInfo($line, $args = self::NO_ARGUMENTS)
+    public function info($line, $args = self::NO_ARGUMENTS)
     {
-        $this->log($line, self::INFO, $args);
+    	$this->log($line, self::INFO, $args);
     }
 
     /**
@@ -266,22 +231,22 @@ class KLogger
      * @param string $line Information to log
      * @return void
      */
-    public function logNotice($line, $args = self::NO_ARGUMENTS)
+    public function notice($line, $args = self::NO_ARGUMENTS)
     {
-        $this->log($line, self::NOTICE, $args);
+    	$this->log($line, self::NOTICE, $args);
     }
 
     /**
      * Writes a $line to the log with a severity level of WARN. Generally
-     * corresponds to E_WARNING, E_USER_WARNING, E_CORE_WARNING, or 
+     * corresponds to E_WARNING, E_USER_WARNING, E_CORE_WARNING, or
      * E_COMPILE_WARNING
      *
      * @param string $line Information to log
      * @return void
      */
-    public function logWarn($line, $args = self::NO_ARGUMENTS)
+    public function warn($line, $args = self::NO_ARGUMENTS)
     {
-        $this->log($line, self::WARN, $args);
+    	$this->log($line, self::WARN, $args);
     }
 
     /**
@@ -291,9 +256,9 @@ class KLogger
      * @param string $line Information to log
      * @return void
      */
-    public function logError($line, $args = self::NO_ARGUMENTS)
+    public function error($line, $args = self::NO_ARGUMENTS)
     {
-        $this->log($line, self::ERR, $args);
+    	$this->log($line, self::ERR, $args);
     }
 
     /**
@@ -302,46 +267,12 @@ class KLogger
      *
      * @param string $line Information to log
      * @return void
-     * @deprecated Use logCrit
      */
-    public function logFatal($line, $args = self::NO_ARGUMENTS)
+    public function fatal($line, $args = self::NO_ARGUMENTS)
     {
         $this->log($line, self::FATAL, $args);
     }
-
-    /**
-     * Writes a $line to the log with a severity level of ALERT.
-     *
-     * @param string $line Information to log
-     * @return void
-     */
-    public function logAlert($line, $args = self::NO_ARGUMENTS)
-    {
-        $this->log($line, self::ALERT, $args);
-    }
-
-    /**
-     * Writes a $line to the log with a severity level of CRIT.
-     *
-     * @param string $line Information to log
-     * @return void
-     */
-    public function logCrit($line, $args = self::NO_ARGUMENTS)
-    {
-        $this->log($line, self::CRIT, $args);
-    }
-
-    /**
-     * Writes a $line to the log with a severity level of EMERG.
-     *
-     * @param string $line Information to log
-     * @return void
-     */
-    public function logEmerg($line, $args = self::NO_ARGUMENTS)
-    {
-        $this->log($line, self::EMERG, $args);
-    }
-
+    
     /**
      * Writes a $line to the log with the given severity
      *
@@ -380,21 +311,22 @@ class KLogger
         }
     }
 
+    /**
+     * Returns the file name that is used internally for logging
+     *
+     * @return the name of the file that is internally used
+     */
+    public function getLogFilePath() {
+    	return $this->_logFilePath;
+    }
+
     private function _getTimeLine($level)
     {
         $time = date(self::$_dateFormat);
 
         switch ($level) {
-            case self::EMERG:
-                return "$time - EMERG -->";
-            case self::ALERT:
-                return "$time - ALERT -->";
-            case self::CRIT:
-                return "$time - CRIT -->";
-            case self::FATAL: # FATAL is an alias of CRIT
+            case self::FATAL:
                 return "$time - FATAL -->";
-            case self::NOTICE:
-                return "$time - NOTICE -->";
             case self::INFO:
                 return "$time - INFO -->";
             case self::WARN:

@@ -114,7 +114,7 @@ class TLogger
             }
         }
 
-        if (in_array($logDirectory, self::$instances)) {
+        if (in_array($logDirectory, array_keys(self::$instances))) {
             return self::$instances[$logDirectory];
         }
 

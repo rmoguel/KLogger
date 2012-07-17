@@ -2,16 +2,16 @@
 // lets us execute the tests from any directory
 define('ROOT_DIR',realpath(dirname(__FILE__)."/../"));
 
-include_once(ROOT_DIR.'/src/KLogger.php');
+include_once(ROOT_DIR.'/src/TLogger.php');
 include_once(ROOT_DIR.'/lib/EnhanceTestFramework.php');
 
-class KLoggerTests extends \Enhance\TestFixture
+class TLoggerTests extends \Enhance\TestFixture
 {
 	private $log = null;
 
 	public function setUp()
 	{
-		$this->log = new KLogger('klogger-tests.log');
+		$this->log = new TLogger('tlogger-tests.log');
 	}
 
 	public function tearDown()

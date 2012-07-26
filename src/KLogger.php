@@ -118,15 +118,17 @@ class KLogger
      */
     private static $instances           = array();
     /**
-     * ++++++++++++++++++++++
+     * Default log file name
      */
     private static $_defaultFilePrefix = 'log';
     /**
-     * ++++++++++++++++++++++
+     * Default log file suffix
+     * @var string
      */
     private static $_defaultFileSuffix = 'log';
     /**
-     * ++++++++++++++++++++++
+     * Valid PHP date() format string for log file timestamps
+     * @var string
      */
     private static $_fileDateFormat = 'YmdGis';
 

@@ -117,6 +117,18 @@ class KLogger
      * @var array
      */
     private static $instances           = array();
+    /**
+     * ++++++++++++++++++++++
+     */
+    private static $_defaultFilePrefix = 'log';
+    /**
+     * ++++++++++++++++++++++
+     */
+    private static $_defaultFileSuffix = 'log';
+    /**
+     * ++++++++++++++++++++++
+     */
+    private static $_fileDateFormat = 'YmdGis';
 
     /**
      * Partially implements the Singleton pattern. Each $logDirectory gets one
@@ -124,14 +136,15 @@ class KLogger
      *
      * @param string  $logDirectory File path to the logging directory
      * @param integer $severity     One of the pre-defined severity constants
+     * @param array $fileAttributes Array of log file name attributes
      * @return KLogger
      */
-    public static function instance($logDirectory = false, $severity = false)
+    public static function instance($logDirectory = false, $severity = false, array $fileAttributes = array())
     {
         if ($severity === false) {
             $severity = self::$_defaultSeverity;
         }
-        
+
         if ($logDirectory === false) {
             if (count(self::$instances) > 0) {
                 return current(self::$instances);
@@ -144,7 +157,7 @@ class KLogger
             return self::$instances[$logDirectory];
         }
 
-        self::$instances[$logDirectory] = new self($logDirectory, $severity);
+        self::$instances[$logDirectory] = new self($logDirectory, $severity, $fileAttributes);
 
         return self::$instances[$logDirectory];
     }
@@ -154,9 +167,10 @@ class KLogger
      *
      * @param string  $logDirectory File path to the logging directory
      * @param integer $severity     One of the pre-defined severity constants
+     * @param array $fileAttributes Array of log file name attributes
      * @return void
      */
-    public function __construct($logDirectory, $severity)
+    public function __construct($logDirectory, $severity, array $fileAttributes = array())
     {
         $logDirectory = rtrim($logDirectory, '\\/');
 
@@ -164,11 +178,9 @@ class KLogger
             return;
         }
 
-        $this->_logFilePath = $logDirectory
-            . DIRECTORY_SEPARATOR
-            . 'log_'
-            . date('Y-m-d')
-            . '.txt';
+        $fileName = $this->_logFileName($fileAttributes);
+
+        $this->_logFilePath = $logDirectory.DIRECTORY_SEPARATOR.$fileName;
 
         $this->_severityThreshold = $severity;
         if (!file_exists($logDirectory)) {
@@ -239,7 +251,7 @@ class KLogger
 
     /**
      * Sets the date format used by all instances of KLogger
-     * 
+     *
      * @param string $dateFormat Valid format string for date()
      */
     public static function setDateFormat($dateFormat)
@@ -273,7 +285,7 @@ class KLogger
 
     /**
      * Writes a $line to the log with a severity level of WARN. Generally
-     * corresponds to E_WARNING, E_USER_WARNING, E_CORE_WARNING, or 
+     * corresponds to E_WARNING, E_USER_WARNING, E_CORE_WARNING, or
      * E_COMPILE_WARNING
      *
      * @param string $line Information to log
@@ -352,14 +364,14 @@ class KLogger
     {
         if ($this->_severityThreshold >= $severity) {
             $status = $this->_getTimeLine($severity);
-            
+
             $line = "$status $line";
-            
+
             if($args !== self::NO_ARGUMENTS) {
                 /* Print the passed object value */
                 $line = $line . '; ' . var_export($args, true);
             }
-            
+
             $this->writeFreeFormLine($line . PHP_EOL);
         }
     }
@@ -406,5 +418,27 @@ class KLogger
             default:
                 return "$time - LOG -->";
         }
+    }
+
+    /**
+     * Formats the log file name, allowing file name elements to be specified.
+     * Default values when unspecified
+     *
+     * @param array $fileAttributes Array of various file attributes
+     * @return string $fileName
+     */
+    private function _logFileName(array $fileAttributes = array())
+    {
+        $fileName = (isset($fileAttributes['prefix']) && strlen(trim($fileAttributes['prefix'])) > 0) ? trim($fileAttributes['prefix']) : self::$_defaultFilePrefix;
+
+        $suffixFix = (isset($fileAttributes['suffix']) && strlen(trim($fileAttributes['suffix'])) > 0) ? trim($fileAttributes['suffix']) : self::$_defaultFileSuffix;
+        $appendDate = (isset($fileAttributes['appendDate']) && is_bool($fileAttributes['appendDate'])) ? true : false;
+        $appendPID = (isset($fileAttributes['appendPID']) && is_bool($fileAttributes['appendPID'])) ? true : false;
+
+        if ($appendDate) $fileName .= '.'.date(self::$_fileDateFormat);
+        if ($appendPID) $fileName .= '.'.getmypid();
+        $fileName .= '.'.$suffixFix;
+
+        return $fileName;
     }
 }
